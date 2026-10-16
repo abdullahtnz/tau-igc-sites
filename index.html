@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Competition Scoreboard</title>
+<style>
+:root{--bg:#0f1830;--panel:#182548;--panel2:#1f2f5c;--line:#2c3f73;--text:#eef1fa;--muted:#8fa0cc;--gold:#f2c14e;--ok:#2fbf9b;--bad:#e0556a;--na:#56658f;--topbar:56px;color-scheme:dark}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{display:flex;flex-direction:column;background:radial-gradient(1100px 420px at 50% -12%,#233a78,transparent),var(--bg);color:var(--text);font:15px/1.4 "Segoe UI",system-ui,-apple-system,Roboto,sans-serif;font-variant-numeric:tabular-nums}
+button,input,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+header{height:var(--topbar);display:flex;align-items:center;gap:1rem;padding:0 1rem;border-bottom:1px solid var(--line);flex:none}
+#title{font:600 1.35rem Georgia,"Iowan Old Style",Palatino,serif;margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;flex:1}
+nav{display:flex;gap:.3rem}
+.tab{background:none;border:1px solid transparent;border-radius:8px;padding:.4rem .9rem;color:var(--muted)}
+.tab.on{background:var(--panel2);color:var(--text);border-color:var(--line)}
+.ghost{background:none;border:1px solid var(--line);border-radius:8px;padding:.4rem .7rem;color:var(--muted)}
+.ghost:hover{color:var(--text)}
+main{flex:1;min-height:0;overflow:auto}
+
+/* scoreboard */
+.board{height:100%;min-width:900px;display:flex;flex-direction:column;padding:.5rem 1rem 1rem;gap:3px;--cols:clamp(2rem,3.2vw,3.4rem) minmax(7rem,16rem) repeat(35,minmax(0,1fr)) clamp(3rem,4.4vw,5rem)}
+.sub{display:flex;align-items:center;gap:1.2rem;color:var(--muted);font-size:.85rem;padding:.2rem 0 .5rem;flex:none}
+.sub .sp{flex:1}
+.lg{display:inline-flex;align-items:center;gap:.35rem}
+.lg i{width:.8rem;height:.8rem;border-radius:3px;display:inline-block}
+.grid{flex:1;min-height:0;display:flex;flex-direction:column;gap:3px}
+.row{display:grid;grid-template-columns:var(--cols);gap:3px;align-items:stretch}
+.row.team{flex:1 1 0;min-height:0;max-height:6rem}
+.row.head,.row.foot{flex:none;height:1.7rem}
+.qh,.sv{border:0;background:none;color:var(--muted);font-size:clamp(.55rem,.95vw,.95rem);padding:0;display:grid;place-items:center;border-radius:4px}
+.qh:hover{color:var(--text);background:var(--panel)}
+.qh.cur,.cur .sv{color:var(--gold);font-weight:700}
+.sv.full{color:var(--ok)}
+.lab{display:flex;align-items:center;padding-left:.7rem;color:var(--muted);font-size:.8rem}
+.rk{display:grid;place-items:center;border-radius:6px;font-weight:700;color:var(--muted);background:var(--panel);font-size:min(calc(62vh / var(--rows) * .5),1.4rem)}
+.rk.r1{background:var(--gold);color:#2a1f00}.rk.r2{background:#c9d2ea;color:#1a2240}.rk.r3{background:#d09a6a;color:#2b1708}
+.nm{display:flex;align-items:center;padding:0 .8rem;background:var(--panel);border-radius:6px;border-left:5px solid hsl(var(--h) 70% 60%);font-weight:600;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-size:min(max(calc(62vh / var(--rows) * .5),.75rem),1.5rem)}
+.cell{border:0;padding:0;border-radius:4px;display:grid;place-items:center;font-weight:700;color:#fff;background:transparent;box-shadow:inset 0 0 0 1px var(--line);font-size:min(calc(62vh / var(--rows) * .45),1.1vw)}
+.cell.c{background:var(--ok);box-shadow:none}.cell.w{background:var(--bad);box-shadow:none}.cell.n{background:var(--na);box-shadow:none}
+.cell.cur:not(.c):not(.w):not(.n){box-shadow:inset 0 0 0 1px var(--gold)}
+.cell:hover{filter:brightness(1.25)}
+.sc{display:grid;place-items:center;background:var(--panel);border-radius:6px;font-weight:800;color:var(--gold);font-size:min(calc(62vh / var(--rows) * .65),2.2rem)}
+
+/* entry */
+.entry{display:grid;grid-template-columns:250px 1fr;gap:1.2rem;padding:1.2rem;max-width:1150px;margin:0 auto}
+.qnav{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;align-content:start}
+.qb{height:2.6rem;border-radius:8px;border:1px solid var(--line);background:var(--panel);color:var(--muted);font-weight:600}
+.qb.part{border-color:var(--gold);color:var(--gold)}
+.qb.done{background:#1c5b52;border-color:var(--ok);color:#fff}
+.qb.cur{background:var(--gold);border-color:var(--gold);color:#2a1f00}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:1.2rem}
+.qtop{display:flex;align-items:center;gap:1rem;margin-bottom:.6rem}
+.qtop h2{font:600 1.7rem Georgia,serif;margin:0;flex:1}
+.qtop small{color:var(--muted);font:400 1rem "Segoe UI",sans-serif}
+.chips{display:flex;gap:.6rem;flex-wrap:wrap;margin-bottom:1rem}
+.chip{padding:.25rem .7rem;border-radius:99px;font-size:.85rem;font-weight:600;background:var(--panel2)}
+.chip.c{color:var(--ok)}.chip.w{color:var(--bad)}.chip.n{color:#a9b6dc}.chip.p{color:var(--muted)}
+.tr{display:flex;align-items:center;gap:1rem;padding:.55rem .7rem;border-radius:8px;border-left:5px solid hsl(var(--h) 70% 60%);background:var(--panel2);margin-bottom:6px}
+.tn{flex:1;min-width:0;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tn span{color:var(--muted);font-weight:400;margin-left:.6rem;font-size:.85rem}
+.opts{display:flex;gap:6px}
+.opt{min-width:5.6rem;height:2.6rem;border-radius:8px;border:1px solid var(--line);background:var(--panel);color:var(--muted);font-weight:600}
+.opt:hover{color:var(--text)}
+.opt.on.c{background:var(--ok);border-color:var(--ok);color:#04211a}
+.opt.on.w{background:var(--bad);border-color:var(--bad);color:#2b0610}
+.opt.on.n{background:var(--na);border-color:var(--na);color:#fff}
+.acts{display:flex;gap:.6rem;margin-top:1rem;flex-wrap:wrap}
+.btn{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:.55rem 1rem;font-weight:600}
+.btn.pri{background:var(--gold);border-color:var(--gold);color:#2a1f00}
+.btn.danger{color:var(--bad)}
+
+/* teams */
+.wrap{max-width:760px;margin:0 auto;padding:1.2rem;display:grid;gap:1rem}
+.wrap h3{margin:0 0 .6rem;font:600 1.15rem Georgia,serif}
+input[type=text],textarea{width:100%;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:.55rem .7rem}
+textarea{min-height:5.5rem;resize:vertical}
+.trow{display:flex;gap:.6rem;margin-bottom:6px;align-items:center}
+.trow i{width:.9rem;height:2.2rem;border-radius:4px;background:hsl(var(--h) 70% 60%);flex:none}
+.note{color:var(--muted);font-size:.88rem;margin:.3rem 0 0}
+
+/* modal */
+.ov{position:fixed;inset:0;background:rgba(5,9,22,.7);display:grid;place-items:center;padding:1rem;z-index:10}
+.ov[hidden]{display:none}
+.modal{width:min(760px,100%);max-height:90vh;overflow:auto;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:1.2rem 1.4rem}
+.mg{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin:1rem 0}
+.mg h4{margin:0 0 .4rem;font-size:.95rem}
+.mg h4.c{color:var(--ok)}.mg h4.w{color:var(--bad)}.mg h4.n{color:#a9b6dc}.mg h4.p{color:var(--muted)}
+.tag{display:inline-block;margin:0 .35rem .35rem 0;padding:.2rem .6rem;border-radius:6px;background:var(--panel2);border-left:4px solid hsl(var(--h) 70% 60%);font-size:.9rem}
+.empty{text-align:center;padding:4rem 1rem;color:var(--muted)}
+#toast{position:fixed;bottom:1rem;left:50%;transform:translateX(-50%);background:var(--gold);color:#2a1f00;padding:.5rem 1rem;border-radius:8px;font-weight:600;z-index:20}
+@media (max-width:800px){.entry{grid-template-columns:1fr}.opt{min-width:4rem}}
+@media (prefers-reduced-motion:no-preference){.cell,.qb,.opt{transition:background .15s,filter .15s}}
+</style>
+</head>
+<body>
+<header>
+  <h1 id="title"></h1>
+  <nav>
+    <button class="tab" data-a="tab" data-v="board">Scoreboard</button>
+    <button class="tab" data-a="tab" data-v="entry">Enter results</button>
+    <button class="tab" data-a="tab" data-v="teams">Teams &amp; data</button>
+  </nav>
+  <button class="ghost" data-a="fs" title="Toggle fullscreen">Fullscreen</button>
+</header>
+<main id="main"></main>
+<div class="ov" id="modal" hidden></div>
+<input type="file" id="file" accept=".json" hidden>
+
+<script>
+(() => {
+const Q = 35, KEY = 'quizboard.v1';
+const $ = s => document.querySelector(s);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const uid = () => Math.random().toString(36).slice(2, 9);
+const LBL = {c:'Correct', w:'Wrong', n:'N/A', p:'Pending'}, GLY = {c:'✓', w:'✕', n:'–'};
+
+function clean(o) {
+  const d = {title:'Intellectual Competition', teams:[], results:{}, current:0, sort:'rank', view:'board'};
+  if (!o || !Array.isArray(o.teams)) return d;
+  d.title = String(o.title || d.title);
+  d.teams = o.teams.map((t, i) => ({id:String(t.id || uid()), name:String(t.name || 'Team ' + (i + 1)), h:Number.isFinite(t.h) ? t.h : (i * 137.5) % 360}));
+  d.teams.forEach(t => { const a = (o.results && o.results[t.id]) || []; d.results[t.id] = Array.from({length:Q}, (_, i) => ['c','w','n'].includes(a[i]) ? a[i] : null); });
+  d.current = Math.min(Q - 1, Math.max(0, +o.current || 0));
+  d.sort = o.sort === 'order' ? 'order' : 'rank';
+  d.view = ['board','entry','teams'].includes(o.view) ? o.view : 'board';
+  return d;
+}
+let S; try { S = clean(JSON.parse(localStorage.getItem(KEY))); } catch (e) { S = clean(null); }
+let modalQ = null;
+const save = () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { toast('Could not save in this browser'); } };
+function toast(m) { const t = document.createElement('div'); t.id = 'toast'; t.textContent = m; document.body.appendChild(t); setTimeout(() => t.remove(), 2200); }
+
+const res = (t, i) => (S.results[t.id] || [])[i] || null;
+const score = t => (S.results[t.id] || []).filter(v => v === 'c').length;
+const full = i => S.teams.length > 0 && S.teams.every(t => res(t, i));
+function ranked() {
+  const list = S.teams.map((t, idx) => ({t, idx, s:score(t)}));
+  const by = [...list].sort((a, b) => b.s - a.s || a.idx - b.idx);
+  let r = 0, prev = null; by.forEach((x, i) => { if (x.s !== prev) { r = i + 1; prev = x.s; } x.rank = r; });
+  return S.sort === 'rank' ? by : list;
+}
+const anyResult = () => S.teams.some(t => (S.results[t.id] || []).some(Boolean));
+const emptyHTML = () => `<div class="empty"><h2>No teams yet</h2><p>Add your teams to start scoring.</p><button class="btn pri" data-a="tab" data-v="teams">Add teams</button></div>`;
+
+function boardHTML() {
+  if (!S.teams.length) return emptyHTML();
+  const rows = ranked(), started = anyResult(), nq = [...Array(Q).keys()];
+  const head = `<div class="row head"><div></div><div class="lab">Team</div>${nq.map(i => `<button class="qh ${i === S.current ? 'cur' : ''}" data-a="openq" data-i="${i}" title="Question ${i + 1} details">${i + 1}</button>`).join('')}<div class="lab">Points</div></div>`;
+  const body = rows.map(x => `<div class="row team" style="--h:${x.t.h}"><div class="rk ${started && x.rank < 4 ? 'r' + x.rank : ''}">${started ? x.rank : '–'}</div><div class="nm" title="${esc(x.t.name)}">${esc(x.t.name)}</div>${nq.map(i => { const v = res(x.t, i); return `<button class="cell ${v || ''} ${i === S.current ? 'cur' : ''}" data-a="openq" data-i="${i}" title="${esc(x.t.name)} – Q${i + 1}: ${LBL[v || 'p']}">${v ? GLY[v] : ''}</button>`; }).join('')}<div class="sc">${x.s}</div></div>`).join('');
+  const foot = `<div class="row foot"><div></div><div class="lab">Teams correct</div>${nq.map(i => { const n = S.teams.filter(t => res(t, i) === 'c').length; return `<div class="sv ${i === S.current ? 'cur' : ''}">${S.teams.some(t => res(t, i)) ? n : ''}</div>`; }).join('')}<div></div></div>`;
+  const judged = nq.filter(full).length;
+  return `<div class="board" style="--rows:${S.teams.length}"><div class="sub"><span>${judged} of ${Q} questions fully judged</span><span class="sp"></span>
+    <span class="lg"><i style="background:var(--ok)"></i>Correct</span><span class="lg"><i style="background:var(--bad)"></i>Wrong</span><span class="lg"><i style="background:var(--na)"></i>N/A</span><span class="lg"><i style="box-shadow:inset 0 0 0 1px var(--line)"></i>Pending</span>
+    <button class="ghost" data-a="sort">${S.sort === 'rank' ? 'Sorted by points' : 'Original team order'}</button></div>
+    <div class="grid">${head}${body}${foot}</div></div>`;
+}
+
+function entryHTML() {
+  if (!S.teams.length) return emptyHTML();
+  const i = S.current, cnt = {c:0, w:0, n:0, p:0};
+  S.teams.forEach(t => cnt[res(t, i) || 'p']++);
+  const nav = [...Array(Q).keys()].map(k => { const n = S.teams.filter(t => res(t, k)).length; return `<button class="qb ${n === S.teams.length ? 'done' : n ? 'part' : ''} ${k === i ? 'cur' : ''}" data-a="q" data-i="${k}">${k + 1}</button>`; }).join('');
+  const opt = (t, v, label) => `<button class="opt ${v} ${res(t, i) === v ? 'on' : ''}" data-a="set" data-t="${t.id}" data-v="${v}">${label}</button>`;
+  const trs = S.teams.map(t => `<div class="tr" style="--h:${t.h}"><div class="tn">${esc(t.name)}<span>${score(t)} pts</span></div><div class="opts">${opt(t,'c','✓ Correct')}${opt(t,'w','✕ Wrong')}${opt(t,'n','N/A')}</div></div>`).join('');
+  return `<div class="entry"><div class="qnav">${nav}</div><div class="panel">
+    <div class="qtop"><button class="ghost" data-a="step" data-d="-1" ${i === 0 ? 'disabled' : ''}>Previous</button><h2>Question ${i + 1} <small>of ${Q}</small></h2><button class="btn ${cnt.p === 0 && i < Q - 1 ? 'pri' : ''}" data-a="step" data-d="1" ${i === Q - 1 ? 'disabled' : ''}>Next question</button></div>
+    <div class="chips"><span class="chip c">${cnt.c} correct</span><span class="chip w">${cnt.w} wrong</span><span class="chip n">${cnt.n} N/A</span><span class="chip p">${cnt.p} pending</span></div>
+    <div class="trows">${trs}</div>
+    <div class="acts"><button class="btn" data-a="allna">Mark pending teams N/A</button><button class="btn danger" data-a="clearq">Clear this question</button></div>
+    <p class="note">Click an active button again to undo it. Use the left and right arrow keys to change question.</p></div></div>`;
+}
+
+function teamsHTML() {
+  const rows = S.teams.map(t => `<div class="trow" style="--h:${t.h}"><i></i><input type="text" value="${esc(t.name)}" data-a="rename" data-t="${t.id}" aria-label="Team name"><button class="ghost" data-a="del" data-t="${t.id}">Remove</button></div>`).join('');
+  return `<div class="wrap">
+    <section class="panel"><h3>Event title</h3><input type="text" value="${esc(S.title)}" data-a="retitle" aria-label="Event title"></section>
+    <section class="panel"><h3>Add teams</h3><textarea id="bulk" placeholder="One team name per line"></textarea><div class="acts"><button class="btn pri" data-a="add">Add teams</button></div></section>
+    <section class="panel"><h3>Teams (${S.teams.length})</h3>${rows || '<p class="note">No teams yet.</p>'}</section>
+    <section class="panel"><h3>Data</h3><p class="note" style="margin:0 0 .8rem">Everything saves automatically in this browser on this computer. Download a backup before the event, and open this file from the same place each time.</p>
+    <div class="acts" style="margin:0"><button class="btn" data-a="export">Download backup</button><button class="btn" data-a="import">Restore backup</button><button class="btn danger" data-a="reset">Reset all scores</button></div></section></div>`;
+}
+
+function modalHTML() {
+  const i = modalQ, g = {c:[], w:[], n:[], p:[]};
+  S.teams.forEach(t => g[res(t, i) || 'p'].push(t));
+  const grp = k => `<div><h4 class="${k}">${LBL[k]} (${g[k].length})</h4>${g[k].map(t => `<span class="tag" style="--h:${t.h}">${esc(t.name)}</span>`).join('') || '<span class="note">None</span>'}</div>`;
+  return `<div class="modal" role="dialog" aria-label="Question ${i + 1}"><div class="qtop"><button class="ghost" data-a="mq" data-d="-1" ${i === 0 ? 'disabled' : ''}>Previous</button><h2>Question ${i + 1}</h2><button class="ghost" data-a="mq" data-d="1" ${i === Q - 1 ? 'disabled' : ''}>Next</button></div>
+    <div class="mg">${grp('c')}${grp('w')}${grp('n')}${grp('p')}</div>
+    <div class="acts"><button class="btn pri" data-a="goscore">Edit this question</button><button class="btn" data-a="closeq">Close</button></div></div>`;
+}
+
+function render() {
+  const sc = $('.trows') ? $('.trows').scrollTop : 0, ms = S.view === 'board' ? 0 : $('#main').scrollTop;
+  $('#title').textContent = S.title; document.title = S.title;
+  document.querySelectorAll('.tab').forEach(b => b.classList.toggle('on', b.dataset.v === S.view));
+  $('#main').innerHTML = S.view === 'board' ? boardHTML() : S.view === 'entry' ? entryHTML() : teamsHTML();
+  $('#main').scrollTop = ms;
+  const m = $('#modal'); m.hidden = modalQ === null; m.innerHTML = modalQ === null ? '' : modalHTML();
+}
+const commit = () => { save(); render(); };
+
+function dl(name, text) {
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([text], {type:'application/json'})); a.download = name;
+  document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+function setRes(tid, i, v) { (S.results[tid] || (S.results[tid] = Array(Q).fill(null)))[i] = v; }
+
+const act = {
+  tab: el => { S.view = el.dataset.v; commit(); },
+  openq: el => { modalQ = +el.dataset.i; render(); },
+  closeq: () => { modalQ = null; render(); },
+  mq: el => { modalQ = Math.min(Q - 1, Math.max(0, modalQ + +el.dataset.d)); render(); },
+  goscore: () => { S.current = modalQ; S.view = 'entry'; modalQ = null; commit(); },
+  q: el => { S.current = +el.dataset.i; commit(); },
+  step: el => { S.current = Math.min(Q - 1, Math.max(0, S.current + +el.dataset.d)); commit(); },
+  set: el => { const t = el.dataset.t, v = el.dataset.v, i = S.current; const cur = S.results[t] && S.results[t][i]; setRes(t, i, cur === v ? null : v); commit(); },
+  allna: () => { S.teams.forEach(t => { if (!res(t, S.current)) setRes(t.id, S.current, 'n'); }); commit(); },
+  clearq: () => { if (confirm('Clear all results for question ' + (S.current + 1) + '?')) { S.teams.forEach(t => setRes(t.id, S.current, null)); commit(); } },
+  sort: () => { S.sort = S.sort === 'rank' ? 'order' : 'rank'; commit(); },
+  fs: () => { document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen().catch(() => {}); },
+  add: () => {
+    const names = $('#bulk').value.split('\n').map(s => s.trim()).filter(Boolean);
+    names.forEach(n => { const id = uid(); S.teams.push({id, name:n, h:(S.teams.length * 137.5) % 360}); S.results[id] = Array(Q).fill(null); });
+    commit(); if (names.length) toast(names.length + ' team(s) added');
+  },
+  del: el => { const t = S.teams.find(x => x.id === el.dataset.t); if (t && confirm('Remove "' + t.name + '" and all its results?')) { S.teams = S.teams.filter(x => x !== t); delete S.results[t.id]; commit(); } },
+  export: () => dl('scoreboard-backup.json', JSON.stringify(S, null, 1)),
+  import: () => $('#file').click(),
+  reset: () => { if (confirm('Reset every team\'s results? Teams are kept.')) { S.teams.forEach(t => S.results[t.id] = Array(Q).fill(null)); S.current = 0; commit(); } }
+};
+document.addEventListener('click', e => {
+  if (e.target.id === 'modal') { modalQ = null; return render(); }
+  const el = e.target.closest('[data-a]');
+  if (el && act[el.dataset.a]) act[el.dataset.a](el);
+});
+document.addEventListener('change', e => {
+  const el = e.target, a = el.dataset && el.dataset.a;
+  if (a === 'rename') { const t = S.teams.find(x => x.id === el.dataset.t); if (t && el.value.trim()) t.name = el.value.trim(); commit(); }
+  if (a === 'retitle') { S.title = el.value.trim() || S.title; commit(); }
+  if (el.id === 'file' && el.files[0]) {
+    const r = new FileReader();
+    r.onload = () => { try { const d = clean(JSON.parse(r.result)); if (confirm('Replace current data with this backup?')) { S = d; modalQ = null; commit(); toast('Backup restored'); } } catch (x) { toast('That file is not a valid backup'); } el.value = ''; };
+    r.readAsText(el.files[0]);
+  }
+});
+document.addEventListener('keydown', e => {
+  if (/INPUT|TEXTAREA/.test(document.activeElement.tagName)) return;
+  if (e.key === 'Escape' && modalQ !== null) { modalQ = null; render(); }
+  else if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
+    const d = e.key === 'ArrowRight' ? 1 : -1;
+    if (modalQ !== null) modalQ = Math.min(Q - 1, Math.max(0, modalQ + d));
+    else S.current = Math.min(Q - 1, Math.max(0, S.current + d));
+    commit();
+  }
+});
+render();
+})();
+</script>
+</body>
+</html>
